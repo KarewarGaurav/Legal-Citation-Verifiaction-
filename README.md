@@ -182,30 +182,6 @@ Add PNG captures under `docs/screenshots/` (optional for assessors):
 | `POST /api/normalize-sections` | Section normalizer smoke test |
 | `POST /api/sessions` | List / create sessions |
 
-## Submission email (template)
-
-```
-Hi,
-
-Please find my submission for the BRAHMO Citation Safety Engine assessment.
-
-GitHub Repository:
-<repo-link>
-
-The implementation includes:
-- deterministic citation extraction
-- hallucination detection
-- Indian Kanoon verification
-- citation annotation
-- section normalization
-- verification reporting
-- session persistence
-
-README contains setup instructions and architecture notes.
-
-Thank you.
-Gaurav Karewar
-```
 
 ## License
 
