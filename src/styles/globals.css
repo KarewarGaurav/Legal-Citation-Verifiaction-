@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f6f9;
+  --foreground: #141824;
+  --surface: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --border: #dfe3eb;
+  --border-soft: rgba(223, 227, 235, 0.65);
+  --muted: #5a6478;
+  --accent: #2c4a6e;
+  --accent-hover: #1e3550;
+  --accent-muted: rgba(44, 74, 110, 0.08);
+  --danger: #9b2c2c;
+  --danger-muted: rgba(155, 44, 44, 0.06);
+  --warning: #8a6d1d;
+  --success: #2d5a3d;
+  --success-muted: rgba(45, 90, 61, 0.06);
+  --sidebar: #eef1f6;
+  --sidebar-border: #d8dde8;
+  --shadow-soft: 0 1px 3px rgba(20, 24, 36, 0.04), 0 8px 24px rgba(20, 24, 36, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0c0e14;
+    --foreground: #e8ebf2;
+    --surface: #151820;
+    --surface-glass: rgba(21, 24, 32, 0.78);
+    --border: #2a3040;
+    --border-soft: rgba(42, 48, 64, 0.7);
+    --muted: #8b95a8;
+    --accent: #6b8fb8;
+    --accent-hover: #8aaed4;
+    --accent-muted: rgba(107, 143, 184, 0.12);
+    --danger: #d47272;
+    --danger-muted: rgba(212, 114, 114, 0.08);
+    --warning: #c4a44a;
+    --success: #5a9e72;
+    --success-muted: rgba(90, 158, 114, 0.08);
+    --sidebar: #101218;
+    --sidebar-border: #252b3a;
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-danger: var(--danger);
+  --color-danger-muted: var(--danger-muted);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-border: var(--sidebar-border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  a,
+  aside {
+    transition-property: color, background-color, border-color, opacity, transform;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
+  }
+}
+
+.glass-card {
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+@keyframes brahmo-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes brahmo-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes brahmo-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: brahmo-fade-in 0.3s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: brahmo-pulse-soft 1.8s ease-in-out infinite;
+}
+
+.stagger-1 {
+  animation-delay: 0.05s;
+}
+.stagger-2 {
+  animation-delay: 0.1s;
+}
+.stagger-3 {
+  animation-delay: 0.15s;
+}
+
+/* Custom scrollbar for workspace */
+.workspace-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.workspace-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* Long legal citations and AI prose */
+.legal-response-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
