@@ -11,6 +11,9 @@ import type {
   VerificationReport,
 } from "@/lib/types";
 
+/** IK batch + pipeline can exceed default 10s on Vercel Hobby. */
+export const maxDuration = 60;
+
 export interface CitationCheckApiData {
   pipeline: CitationSafetyPipelineResult;
   report: VerificationReport;

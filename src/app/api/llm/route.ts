@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { generateMockLlmResponse } from "@/lib/mock-llm";
 import type { ApiResponse } from "@/lib/types";
 
+/** LLM provider calls may need more than the default serverless limit. */
+export const maxDuration = 60;
+
 export interface LlmApiData {
   response: string;
   source: "mock" | "provider";
