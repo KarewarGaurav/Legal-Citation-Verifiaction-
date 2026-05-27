@@ -1,85 +1,93 @@
-# Architecture — BRAHMO Citation Safety Engine
+# Architecture Notes
 
-## Problem
+## Objective
 
-Generic LLMs hallucinate Indian case citations and still cite repealed IPC/CrPC sections. Lawyers need a **deterministic safety layer** after the model responds—not another model judging citations.
+Protect legal users from fabricated/incorrect citations by placing a deterministic safety pipeline after LLM generation and before output presentation.
 
-## Two loops (never mixed)
+## High-level design
 
-```
-Lawyer query ──► Section normalizer (deterministic)
-                      │
-                      ▼
-                 LLM API (generative)
-                      │
-                      ▼
-              Raw legal memo + citations
-                      │
-                      ▼
-         Citation safety engine (deterministic)
-         extract → pre-filter → IK verify → annotate
-                      │
-                      ▼
-              Lawyer-facing verified output
+```text
+User Query
+  -> Normalize statute references (deterministic)
+  -> Generate generic response (LLM provider or deterministic mock)
+  -> Deterministic citation safety pipeline:
+       extract -> pre-filter -> verify -> annotate
+  -> Render verified output + report + alerts
 ```
 
-The safety engine **never** calls the LLM. The LLM **never** calls the safety engine.
+### Separation of concerns
 
-## Pipeline modules
+- **Generative layer:** only generates draft legal text.
+- **Safety layer:** only validates and transforms citations/statute references using deterministic logic.
+- These two layers are intentionally decoupled.
 
-| Stage | Module | Responsibility |
-|-------|--------|----------------|
-| 1 | `section-normalizer.ts` | Load `section_mappings` from Supabase; rewrite IPC/CrPC/IEA in **query and response** |
-| 2 | `citation-extractor.ts` | Load `citation_patterns` from Supabase; regex scan AI output |
-| 3 | `hallucination-detector.ts` | Rule engine: future year, impossible SCC volume, suspicious page, pre-modern year |
-| 4 | `citation-verifier.ts` | Cache → Indian Kanoon search (parallel batch); map to VERIFIED / UNVERIFIED / REMOVED |
-| 5 | `citation-annotator.ts` | Insert badges and strikethrough; build summary counts |
-| 6 | `citation-safety-pipeline.ts` | Orchestrates stages; emits `PipelineProcessingMetrics` (timing, IK cost) |
+## Core modules
 
-## API routes (Next.js App Router)
+| Module | Responsibility |
+|---|---|
+| `src/lib/section-normalizer.ts` | Detect and normalize IPC/CrPC/IEA references using `section_mappings` |
+| `src/lib/citation-extractor.ts` | Extract citations using DB-driven regex patterns |
+| `src/lib/hallucination-detector.ts` | Rule-based pre-filter for impossible/suspicious citations |
+| `src/lib/citation-verifier.ts` | Cache-first verification using Indian Kanoon API |
+| `src/lib/citation-annotator.ts` | Annotate output with VERIFIED/CORRECTED/UNVERIFIED/REMOVED |
+| `src/lib/citation-safety-pipeline.ts` | Stage orchestration and processing metrics |
 
-| Route | Role |
-|-------|------|
-| `POST /api/llm` | Proxy to LLM or mock (matter-aware) |
-| `POST /api/citation-check` | Full pipeline + verification report + optional session persist |
-| `POST /api/normalize-sections` | Section normalizer only (smoke test) |
-| `POST /api/indian-kanoon` | Direct IK proxy (debug) |
+## API contract
 
-Secrets (`LLM_API_KEY`, `INDIAN_KANOON_API_KEY`) stay server-side.
+| Route | Purpose |
+|---|---|
+| `POST /api/llm` | Generic response from configured provider (OpenAI-compatible/Gemini) with mock fallback |
+| `POST /api/citation-check` | Execute deterministic pipeline and return report payload |
+| `POST /api/normalize-sections` | Section normalization endpoint (smoke/testing use) |
+| `POST /api/indian-kanoon` | IK integration utility endpoint |
+| `GET/POST /api/sessions` | Session persistence |
+| `GET/DELETE /api/sessions/[id]` | Session retrieval/deletion |
 
-## Database-driven extensibility
+## Data model and sources
 
-- **New citation format:** `INSERT` one row into `citation_patterns` — extractor picks it up after cache TTL (~5 min).
-- **New section mapping:** `INSERT` into `section_mappings`.
-- **Future US/other jurisdictions:** add verifier adapter; keep extractor pattern table per jurisdiction.
+Supabase tables used:
+- `citation_patterns`
+- `section_mappings`
+- `verification_cache`
+- `citation_sessions`
 
-## Verification semantics
+Schema and seed files:
+- `supabase/schema.sql`
+- `supabase/seed.sql`
+
+## Deterministic verification semantics
 
 | Status | Meaning |
-|--------|---------|
-| VERIFIED | Found in Indian Kanoon (or cache) |
-| CORRECTED | Exists but spacing/page/court code normalized vs IK match |
-| UNVERIFIED | Valid format, not in IK — may be real but obscure |
-| REMOVED | Pre-filter (impossible cite) or IK not found with reporter metadata |
+|---|---|
+| `VERIFIED` | Citation confirmed by IK (or cached confirmed result) |
+| `CORRECTED` | Citation exists but required normalization/correction |
+| `UNVERIFIED` | Could not confirm existence with available authority |
+| `REMOVED` | Citation flagged as impossible or unreliable by deterministic checks |
 
-## Frontend
+## Reliability and performance decisions
 
-- **Matter selector** — eight assessment matters; loads default query.
-- **Side-by-side** — generic LLM vs annotated verified column.
-- **Alerts** — per-citation status + section normalization panel.
-- **Report** — totals, accuracy %, IK API calls and estimated ₹ cost.
+- Cache-first verification to reduce API load and cost.
+- Parallel verification execution for citation batches.
+- Timeout-protected provider and IK calls.
+- Graceful fallback to deterministic mock when provider is unavailable.
+- Structured logging for provider errors and API response failures.
 
-## Session persistence (innovation)
+## Extensibility
 
-`citation_sessions` stores pipeline JSON for sidebar history—useful for demo replay without re-running IK.
+- Add citation format: insert one row in `citation_patterns`.
+- Add statute mapping: insert one row in `section_mappings`.
+- Add new verifier authority: implement additional verifier adapter and route through pipeline.
 
-## Performance choices
+## Current implementation notes
 
-- Parallel `verifyCitationBatch` (`Promise.all`) with per-request rate limiting in the verifier.
-- In-memory caches for patterns and mappings (5-minute TTL).
-- Supabase `verification_cache` avoids repeat IK charges.
+- UI uses scenario chips (8 scenarios) to load representative matter queries.
+- Sessions are persisted and can be replayed for demos.
+- Metrics include extraction/verification/annotation timings and IK usage/cost estimates.
 
-## Testing
+## Testing strategy
 
-- `npm test` — extractor spacing, hallucination rules, section extraction regex.
-- API smoke routes under `/api/test-*` for manual checks in development.
+- Unit tests focus on:
+  - citation extraction normalization behavior
+  - hallucination rules
+  - section extraction logic
+- Build + lint run before submission.

@@ -1,52 +1,81 @@
-# Data sources — BRAHMO Citation Safety Engine
+# Data Sources
 
-This project verifies **Indian legal citations** and normalizes **post–July 2024 criminal code** section references. No clinical or patient data is used.
+This document records all external and seeded data used by the BRAHMO Citation Safety Engine implementation.
 
-## Legal citation patterns (regex)
+## 1) Citation patterns
 
-| Source | Use |
-|--------|-----|
-| BRAHMO assessment Setup Guide v2.0 | Six reporter regex patterns (SCC, SCC OnLine, AIR, Cri LJ, SCR, MANU) stored in Supabase `citation_patterns` |
-| Project `supabase/seed.sql` | Canonical seed rows loaded into your Supabase project |
+**Purpose:** extract legal citations from generated text.
 
-## Statute section mappings (IPC / CrPC / IEA → BNS / BNSS / BSA)
+**Source of truth:**
+- BRAHMO assessment setup guide (provided in assignment)
+- `supabase/seed.sql` inserts rows into `citation_patterns`
 
-| Source | Use |
-|--------|-----|
-| BRAHMO assessment Setup Guide v2.0 | Thirty official mappings (effective after Bharatiya criminal law reforms, 1 July 2024) |
-| Project `supabase/seed.sql` | Rows in `section_mappings` — add new mappings via SQL insert only (no code change) |
+**Formats seeded:**
+- SCC
+- SCC OnLine
+- AIR
+- Cri LJ
+- SCR
+- MANU
 
-## Case law verification
+## 2) Statute section mappings
 
-| Source | URL / access | Use |
-|--------|----------------|-----|
-| Indian Kanoon API | https://api.indiankanoon.org | `POST /search/` to verify whether a citation exists; results cached in `verification_cache` |
-| Signup / credits | https://api.indiankanoon.org/signup/ | Free tier (₹500 credit) sufficient for assessment |
+**Purpose:** normalize old statute references in query/response.
 
-## Sample legal matters & demo text
+**Source of truth:**
+- BRAHMO assessment setup guide mappings
+- `supabase/seed.sql` inserts rows into `section_mappings`
 
-| Source | Use |
-|--------|-----|
-| BRAHMO assessment Setup Guide | Eight matters and four demo scenarios |
-| `src/lib/legal-matters.ts` | Matter metadata and default queries |
-| `src/lib/mock-llm.ts` | Offline deterministic AI responses aligned to demo scenarios |
+**Scope:**
+- IPC -> BNS
+- CrPC -> BNSS
+- IEA -> BSA
 
-## LLM responses (generic column)
+## 3) Citation verification authority
 
-| Provider | Config | Use |
-|----------|--------|-----|
-| OpenAI-compatible API | `LLM_API_KEY`, optional `LLM_API_BASE_URL`, `LLM_MODEL` | Live legal memos when configured |
-| Mock fallback | `src/lib/mock-llm.ts` | Same queries always return the same text for demos without API cost |
+**Purpose:** deterministic existence check for citations.
 
-## Application data storage
+**Primary source:**
+- Indian Kanoon API (`https://api.indiankanoon.org`)
 
-| Source | Use |
-|--------|-----|
-| Supabase PostgreSQL | `citation_patterns`, `section_mappings`, `verification_cache`, `citation_sessions` |
-| Schema | `supabase/schema.sql` |
+**Usage in project:**
+- Search-based verification through API routes/lib modules
+- Results cached in `verification_cache` table to reduce repeated calls and cost
 
-## What we do not use
+## 4) Demo scenario data
 
-- Patient records, EHR, or clinical trial data  
-- Proprietary court databases beyond Indian Kanoon for this assessment  
-- AI models to *verify* citations (verification is deterministic only)
+**Purpose:** reproducible demo behavior without live provider dependency.
+
+**Source files:**
+- `src/lib/legal-matters.ts` (8 assessment scenarios and default queries)
+- `src/lib/mock-llm.ts` (deterministic mock generated outputs)
+
+## 5) LLM provider data path (generic response only)
+
+**Purpose:** produce initial draft legal response.
+
+**Configured providers via `.env`:**
+- OpenAI-compatible endpoint
+- Gemini endpoint
+
+If provider fails or key is absent, the app falls back to deterministic mock output.
+
+## 6) Storage layer
+
+**Database:**
+- Supabase PostgreSQL
+
+**Schema location:**
+- `supabase/schema.sql`
+
+**Tables used for this feature:**
+- `citation_patterns`
+- `section_mappings`
+- `verification_cache`
+- `citation_sessions`
+
+## 7) Out-of-scope / not used
+
+- Clinical data, patient records, or medical datasets
+- AI-based citation truth classification
+- Proprietary legal databases beyond Indian Kanoon for this assessment
